@@ -3,16 +3,19 @@ var L = parseInt(inputs[0]);
 var C = parseInt(inputs[1]);
 var grid = [];
 var path = [];
-var loopFound = false;
+var teleFound = false;
 var loopCheck = [];
 var startX, startY = 0;
 var rounds = 0;
 var beerMode = false;
 var normalMode = true;
 var teleports = [];
+var globalY = 0;
+var globalX = 0;
+var globalDir = '';
+var endGame = false;
 
-
-
+// take inputs, find the starting point and teleports
 for (var i = 0; i < L; i++) {
     var row = readline();
     printErr(row);
@@ -22,32 +25,16 @@ for (var i = 0; i < L; i++) {
         startY = i;
     }
     if(row.indexOf('T') !== -1) {
-         teleports.push(i);
+        teleports.push(i);
         teleports.push(row.indexOf('T'));
-        var temp = row.indexOf('T');
-       
-        if(row.indexOf('T',temp+1)!==-1) {
-            teleports.push(i);
-            teleports.push(row.indexOf('T'));
-            
-        }
     }
 }
-yy = startY;
-xx = startX;
-
-// if(grid[yy+1][xx]===" ") path.push('SOUTH')
-grid[startY][startX] = ' '; 
-// printErr(grid[startY][startX])
-for (var i = 0; i < L; i++) {
-  
-    printErr(grid[i]);
-}
-
+var yy = startY;
+var xx = startX;
 
 function checkNext(y, x, dir) {
     var direction = dir;
-    var validCells = ['$', ' ', 'S', 'N', 'W', 'E', 'B','I','T'];
+    var validCells = ['$', ' ', 'S', 'N', 'W', 'E', 'B', 'I', 'T'];
 	switch (direction) {
 		case 'S':
 			if(validCells.indexOf(grid[y+1][x]) !== -1  ||  (grid[y+1][x] === 'X' && beerMode))
@@ -74,8 +61,7 @@ function checkNext(y, x, dir) {
 				return false;
 			break;
 		default:
-		    return;
-		
+		    return false;
 	}
 }
 function setPriority(current, allDirections) {
@@ -89,34 +75,28 @@ function setPriority(current, allDirections) {
 function priorityChecks (yy,xx,priority) {
     var loopyYY, loopyXX = 0;
     var loopyDir = '';
-    for(var i = 0; i < priority.length;i++) {
-        //printErr('priority ' + priority[i]);
-	    if(checkNext(yy,xx, 'S') && priority[i]==='S') {
-	        //if(g==='$') break;
-		    path.push('SOUTH');
-		    //printErr('s');
+    for(var i = 0; i < priority.length; i++) {
+
+	    if(checkNext(yy, xx, 'S') && priority[i]==='S') {
+	  	    path.push('SOUTH');
 		    loopyYY = yy+1;
 		    loopyXX=xx;
 		    loopyDir = 'S';
 		    break;
-	    } else if(checkNext(yy,xx,'E') && priority[i]==='E') {
+	    } else if(checkNext(yy, xx, 'E') && priority[i]==='E') {
 		    path.push('EAST');
-		   // printErr('e');
-            loopyYY = yy;
+		    loopyYY = yy;
 		    loopyXX=xx+1;
 		    loopyDir = 'E';
 		    break;
-	    } else if(checkNext(yy,xx,'N') && priority[i]==='N') {
+	    } else if(checkNext(yy, xx, 'N') && priority[i]==='N') {
 		    path.push('NORTH');
-		    //printErr('n');
-            loopyYY = yy-1;
+		    loopyYY = yy-1;
 		    loopyXX=xx;
 		    loopyDir = 'N';
 		    break;
-	    } else if(checkNext(yy,xx,'W') && priority[i]==='W') {
-	        //if(grid[yy][xx] === '$') break;
-	    	path.push('WEST');
-	    	//printErr('w (not again)');
+	    } else if(checkNext(yy, xx, 'W') && priority[i]==='W') {
+	       	path.push('WEST');
             loopyYY = yy;
 		    loopyXX=xx-1;
 		    loopyDir = 'W';
@@ -126,79 +106,96 @@ function priorityChecks (yy,xx,priority) {
     return [loopyYY,loopyXX,loopyDir];
 }
 
+
 function gameOn(yy, xx, dir) {
-     var g = grid[yy][xx];
-       // check for Suicide
-        if(g === '$') {
-            //printErr('suicide Time');
-            print(path.join('\n'));
-            // printErr('end here!')
-            return;
-        }
-        // check for Loop
-        var coords = '' + yy.toString() + xx.toString() + dir + beerMode;
-        //printErr(coords);
-        if(loopCheck.indexOf(coords) === -1) {
-            loopCheck.push(coords);
-
-        //printErr(rounds + ' ' + yy + ' ' + xx);
-        rounds++;
-        
-        // for debug purposes only
-        //if(rounds>19) return;
-        
-        if(g ==='X' && beerMode) {
-            grid[yy][xx]=' ';
-        }
-        if(g==='T') {
-           if(yy === teleports[0] && xx === teleports[1])
-               gameOn(teleports[2],teleports[3], dir);
-           else
-                gameOn(teleports[0],teleports[1], dir);
-        }
-        
-        // check for Inverse mode
-        if(g === 'I') {
-            normalMode = !normalMode;
-        }
-        
-        // direct modifiers
-        if(g === 'S') {
-            path.push('SOUTH');
-            //printErr('modifier S');
-            gameOn(yy+1,xx, 'S');
-        } else if (g === 'E') {
-            path.push('EAST');
-            // printErr('modifier E');
-            gameOn(yy,xx+1, 'E');
-        } else if (g === 'N') {
-            path.push('NORTH');
-            // printErr('modifier N');
-            gameOn(yy-1,xx,'N');
-        } else if (g === 'W') {
-            path.push('WEST');
-            // printErr('modifier W');
-            gameOn(yy,xx-1,'W');
-        } 
-        
-        if(g === 'B') {
-            beerMode = !beerMode;
-        }
-
-    var priority = [];
-    if(normalMode) {
-	    priority = setPriority(dir,['S','E','N','W']);
-    } else {
-	    priority = setPriority(dir,['W','N','E','S']);
-    }
-  
-    var temp = priorityChecks(yy, xx, priority);
-    
-    gameOn(temp[0], temp[1], temp[2]);
-    } else {
-        print('LOOP');
+    var g = grid[yy][xx];
+    // check for Suicide
+    if(g === '$') {
+        print(path.join('\n'));
+		endGame = true;
         return;
+    }
+    // check for Loop, if not goes on with other checks
+    var coords = '' + yy.toString() + xx.toString() + dir + beerMode;
+	printErr(coords + ' ' + loopCheck)
+	if(loopCheck.indexOf(coords) === -1) {
+		loopCheck.push(coords);
+			
+		if(g === 'X' && beerMode) {
+			grid[yy][xx]=' ';
+		}
+		if(g === 'T' && !teleFound) {
+			teleFound = !teleFound;
+		    if(yy === teleports[0] && xx === teleports[1]) {
+			    globalY = teleports[2];
+				globalX = teleports[3];
+				globalDir = dir;
+			}
+		    else {
+				globalY = teleports[0];
+				globalX = teleports[1];
+				globalDir = dir;
+			}
+		}
+			
+		// check for Inverse mode
+		if(g === 'I') {
+			normalMode = !normalMode;
+		}
+			
+		// direct modifiers
+		if(g === 'S') {
+			path.push('SOUTH');
+			globalY = yy+1;
+			globalX = xx;
+			globalDir = 'S';
+			return;
+		} else if (g === 'E') {
+			path.push('EAST');
+			globalY = yy;
+			globalX = xx+1;
+			globalDir = 'E';
+			return;
+		} else if (g === 'N') {
+			path.push('NORTH');
+			globalY = yy-1;
+			globalX = xx;
+			globalDir = 'N';
+			return;
+		} else if (g === 'W') {
+			path.push('WEST');
+			globalY = yy;
+			globalX = xx-1;
+			globalDir = 'W';
+			return;
+		} else if(g === 'B') {
+			beerMode = !beerMode;
+		}
+
+		var priority = [];
+		if(normalMode) {
+			priority = setPriority(dir,['S','E','N','W']);
+		} else {
+			priority = setPriority(dir,['W','N','E','S']);
+		}
+		  
+		var temp = priorityChecks(yy, xx, priority);
+		globalY = temp[0];
+		globalX = temp[1]; 
+		globalDir = temp[2];
+		
+	} else {
+        print('LOOP');
+		endGame = true;
     }
     
 }
-gameOn(startY, startX, 'S');
+while (!endGame) {
+	if(!rounds) {
+		gameOn(startY, startX, 'S')
+	} else {
+		gameOn(globalY, globalX, globalDir)
+	}
+	rounds++;
+}
+	
