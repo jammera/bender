@@ -116,16 +116,17 @@ function gameOn(yy, xx, dir) {
         return;
     }
     // check for Loop, if not goes on with other checks
-    var coords = '' + yy.toString() + xx.toString() + dir + beerMode;
+    var coords = grid[xx][yy] + '' + yy.toString() + ' ' + xx.toString() + dir + beerMode;
 	printErr(coords + ' ' + loopCheck)
 	if(loopCheck.indexOf(coords) === -1) {
 		loopCheck.push(coords);
 			
 		if(g === 'X' && beerMode) {
 			grid[yy][xx]=' ';
+			loopCheck.length = 0;
 		}
-		if(g === 'T' && !teleFound) {
-			teleFound = !teleFound;
+		if(g === 'T') teleFound = !teleFound;
+		if(g === 'T' && teleFound) {
 		    if(yy === teleports[0] && xx === teleports[1]) {
 			    globalY = teleports[2];
 				globalX = teleports[3];
@@ -136,7 +137,9 @@ function gameOn(yy, xx, dir) {
 				globalX = teleports[1];
 				globalDir = dir;
 			}
+			return;
 		}
+		
 			
 		// check for Inverse mode
 		if(g === 'I') {
